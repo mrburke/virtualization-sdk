@@ -9,9 +9,11 @@ import os
 import jinja2
 import mock
 import pytest
+import six
 from dlpx.virtualization._internal import (const, exceptions, plugin_util,
                                            plugin_validator, schema_validator)
 from dlpx.virtualization._internal.commands import initialize as init
+from dlpx.virtualization.common.util import to_bytes, to_str
 
 
 @pytest.fixture
@@ -63,6 +65,31 @@ def format_entry_point_template(entry_point_template):
             raise RuntimeError(
                 'Got unrecognized ingestion strategy: {}'.format(
                     ingestion_strategy))
+
+        #
+        # PY2 VS PY3 STRING/BYTES/UNICODE REPRESENTATIONS
+        #
+        #   repr(<type>("<any string>"))
+        #                                  |    PY2    |    PY3    |
+        #   --------------------------------------------------------
+        #   repr(str("1"))                 |   "'1'"   |    '1'    |
+        #   --------------------------------------------------------
+        #   repr(bytes("1", "utf-8"))      |    N/A    |    b'1'   |
+        #   --------------------------------------------------------
+        #   repr(bytes("1"))               |    '1'    |    N/A    |
+        #   --------------------------------------------------------
+        #   repr(unicode("1"))             |   u'1'    |    N/A    |
+        #   --------------------------------------------------------
+        #
+        # Looking at the above table, we need to do one of the following to get a
+        # representation that is not prepended with `u` or `b`:
+        # 1) if six.PY2: plugin_name = to_bytes(plugin_name)
+        # 2) if six.PY3: plugin_name = to_str(plugin_name) (to_str will return a unicode string in PY2)
+        #
+        if six.PY3:
+            plugin_name = to_str(plugin_name)
+        else:
+            plugin_name = to_bytes(plugin_name)
         return template.render(name=repr(plugin_name),
                                linked_operations=operations,
                                default_mount_path=default_mount_path)
@@ -110,9 +137,10 @@ class TestInitialize:
         entry_file_path = os.path.join(tmpdir.strpath, config['srcDir'],
                                        entry_file)
         with open(entry_file_path, 'r') as f:
-            contents = f.read()
-            assert contents == format_entry_point_template(
-                config['id'], ingestion_strategy, host_type)
+            contents = to_str(f.read())
+            expected_contents = to_str(format_entry_point_template(
+                config['id'], ingestion_strategy, host_type))
+            assert contents == expected_contents
 
     @staticmethod
     def test_init_with_relative_path(tmpdir):

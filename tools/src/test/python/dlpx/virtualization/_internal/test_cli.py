@@ -3,8 +3,10 @@
 #
 
 import os
+import re
 
 import click.testing as click_testing
+import six
 import yaml
 from dlpx.virtualization._internal import cli, const, exceptions
 
@@ -172,7 +174,10 @@ class TestInitCli:
             ['init', '-n', plugin_name, '-s', ''])
 
         assert result.exit_code != 0
-        assert "invalid choice" in result.output
+        if six.PY2:
+            assert "invalid choice" in result.output
+        else:
+            assert "Invalid value" in result.output
 
     @staticmethod
     def test_non_existent_root_dir(plugin_name):
@@ -214,7 +219,10 @@ class TestInitCli:
         ])
 
         assert result.exit_code != 0
-        assert "invalid choice" in result.output
+        if six.PY2:
+            assert "invalid choice" in result.output
+        else:
+            assert "Invalid value" in result.output
 
     @staticmethod
     @mock.patch('dlpx.virtualization._internal.commands.initialize.init')
@@ -224,6 +232,7 @@ class TestInitCli:
         result = runner.invoke(
             cli.delphix_sdk,
             ['init', '-n', plugin_name, '-t', const.WINDOWS_HOST_TYPE])
+        # raise result.exception
         assert result.exit_code == 0, 'Output: {}'.format(result.output)
         mock_init.assert_called_once_with(os.getcwd(), const.DIRECT_TYPE,
                                           plugin_name, const.WINDOWS_HOST_TYPE)
@@ -235,7 +244,10 @@ class TestInitCli:
         result = runner.invoke(cli.delphix_sdk, ['init', '-t', 'UNI'])
 
         assert result.exit_code != 0
-        assert "invalid choice" in result.output
+        if six.PY2:
+            assert "invalid choice" in result.output
+        else:
+            assert "Invalid value" in result.output
 
 
 class TestBuildCli:
@@ -576,12 +588,10 @@ class TestUploadCli:
             os.chdir(cwd)
 
         assert result.exit_code == 2
-        assert result.output == (u'Usage: delphix-sdk upload [OPTIONS]\n'
-                                 u'\n'
-                                 u'Error: Invalid value for \'-e\' / '
-                                 u'\'--engine\': Option is required '
-                                 u'and must be specified via the command line.'
-                                 u'\n')
+        output = result.output.replace("\n", "")
+        pattern = re.compile(
+            r"Usage: delphix-sdk upload \[OPTIONS\].*Error: Invalid value for '-e.*")
+        assert re.match(pattern, output) is not None
 
 
 class TestDownloadCli:
@@ -640,13 +650,10 @@ class TestDownloadCli:
         ])
 
         assert result.exit_code == 2
-        assert result.output == (
-            u"Usage: delphix-sdk download-logs [OPTIONS]\n"
-            u"\n"
-            u"Error: Invalid value for '-e' / "
-            u"'--engine': Option is required "
-            u"and must be specified via the command line."
-            u"\n")
+        output = result.output.replace("\n", "")
+        pattern = re.compile(
+            r"Usage: delphix-sdk download-logs \[OPTIONS\].*Error: Invalid value for '-e.*")
+        assert re.match(pattern, output) is not None
 
     @staticmethod
     @mock.patch(
@@ -789,10 +796,8 @@ class TestDownloadCli:
             os.chdir(cwd)
 
         assert result.exit_code == 2
-        assert result.output == (
-            u"Usage: delphix-sdk download-logs [OPTIONS]\n"
-            u"\n"
-            u"Error: Invalid value for '-e' / "
-            u"'--engine': Option is required "
-            u"and must be specified via the command line."
-            u"\n")
+
+        output = result.output.replace("\n", "")
+        pattern = re.compile(
+            r"Usage: delphix-sdk download-logs \[OPTIONS\].*Error: Invalid value for '-e.*")
+        assert re.match(pattern, output) is not None

@@ -75,7 +75,7 @@ class IncorrectArgumentTypeError(PluginRuntimeError):
         actual, expected = self.get_actual_and_expected_type(
             actual_type, expected_type)
 
-        # Get the name of the function that is throwning this error.
+        # Get the name of the function that is throwing this error.
         func_name = sys._getframe(1).f_code.co_name
         message = ("The function {}'s argument '{}' was {} but should"
                    " be of {}{}.".format(

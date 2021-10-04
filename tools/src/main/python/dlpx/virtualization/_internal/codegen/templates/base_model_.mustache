@@ -170,7 +170,7 @@ class GeneratedClassesTypeError(GeneratedClassesError):
             container then we assume there is one element in it and that type
             is the expected type of the container. (For dicts this is the key)
             ie: if expected_type = {str} then the returned expected string with
-            be something like "type 'dict with key basestring'"
+            be something like "type 'dict with key str'"
 
         Returns:
             tuple (str, str): the actual and expected strings used for the
@@ -180,13 +180,16 @@ class GeneratedClassesTypeError(GeneratedClassesError):
         def _remove_angle_brackets(type_string):
             return type_string.replace('<', '').replace('>', '')
 
+        # In py3 the builtins module will be named 'builtins', in py2 it will
+        # be '__builtin__'.
+        builtins = ['__builtin__', 'builtins']
         if isinstance(expected_type, list):
             if len(expected_type) != 1:
                 raise ValueError('The thrown GeneratedClassesTypeError should'
                                  ' have had a list of size 1 as the'
                                  ' expected_type')
             single_type = expected_type[0]
-            if single_type.__module__ != '__builtin__':
+            if single_type.__module__ not in builtins:
                 type_name = '{}.{}'.format(
                     single_type.__module__, single_type.__name__)
             else:
@@ -198,7 +201,10 @@ class GeneratedClassesTypeError(GeneratedClassesError):
                                  ' have had a set of size 1 as the'
                                  ' expected_type')
             single_type = expected_type.pop()
-            if single_type.__module__ != '__builtin__':
+
+
+            st_module = single_type.__module__
+            if st_module not in builtins:
                 type_name = '{}.{}'.format(
                 single_type.__module__, single_type.__name__)
             else:
@@ -209,14 +215,14 @@ class GeneratedClassesTypeError(GeneratedClassesError):
                 raise ValueError('The thrown GeneratedClassesTypeError should'
                                  ' have had a dict of size 1 as the'
                                  ' expected_type')
-            key_type = expected_type.keys()[0]
-            value_type = expected_type.values()[0]
-            if key_type.__module__ != '__builtin__':
+            key_type = list(expected_type.keys())[0]
+            value_type = list(expected_type.values())[0]
+            if key_type.__module__ not in builtins:
                 key_type_name = '{}.{}'.format(
                     key_type.__module__, key_type.__name__)
             else:
                 key_type_name = key_type.__name__
-            if value_type.__module__ != '__builtin__':
+            if value_type.__module__ not in builtins:
                 value_type_name = '{}.{}'.format(
                     value_type.__module__, value_type.__name__)
             else:
@@ -276,19 +282,22 @@ class GeneratedClassesTypeError(GeneratedClassesError):
         if not required and parameter is None:
             return None
         # Now check if the types are incorrect.
+        num_types = {float, complex}
+        num_types.update(set(six.integer_types))
+        num_types = tuple(num_types)
         if expected_type == float:
-            if not isinstance(parameter, (float, int, long, complex)):
+            if not isinstance(parameter, num_types):
                 return GeneratedClassesTypeError(object_type,
                                                  parameter_name,
                                                  type(parameter),
                                                  float,
                                                  required)
         elif expected_type == str:
-            if not isinstance(parameter, basestring):
+            if not isinstance(parameter, six.string_types):
                 return GeneratedClassesTypeError(object_type,
                                                  parameter_name,
                                                  type(parameter),
-                                                 basestring,
+                                                 six.string_types[0],
                                                  required)
         elif expected_type == list:
             if element_type:
@@ -300,7 +309,7 @@ class GeneratedClassesTypeError(GeneratedClassesError):
                                                      required)
 
                 if element_type == float:
-                    check = all(isinstance(elem, (float, int, long, complex))
+                    check = all(isinstance(elem, num_types)
                                 for elem in parameter)
                 else:
                     check = all(isinstance(elem, element_type)
@@ -324,7 +333,7 @@ class GeneratedClassesTypeError(GeneratedClassesError):
                 return GeneratedClassesTypeError(object_type,
                                                  parameter_name,
                                                  type(parameter),
-                                                 {basestring},
+                                                 {six.string_types[0]},
                                                  required)
 
             #
@@ -336,26 +345,26 @@ class GeneratedClassesTypeError(GeneratedClassesError):
             if element_type:
                 if element_type == float:
                     value_check = all(isinstance(v,
-                                                 (float, int, long, complex))
+                                                 num_types)
                                       for v in parameter.values())
                 else:
                     value_check = all(isinstance(v, element_type)
                                       for v in parameter.values())
-                if (not all(isinstance(k, basestring)
+                if (not all(isinstance(k, six.string_types)
                             for k in parameter.keys()) or not value_check):
                     return GeneratedClassesTypeError(
                         object_type,
                         parameter_name,
                         {(type(k), type(v)) for k, v in parameter.items()},
-                        {basestring: element_type},
+                        {six.string_types[0]: element_type},
                         required)
             else:
-                if not all(isinstance(k, basestring) for k in parameter.keys()):
+                if not all(isinstance(k, six.string_types) for k in parameter.keys()):
                     return GeneratedClassesTypeError(
                         object_type,
                         parameter_name,
                         {type(k) for k in parameter.keys()},
-                        {basestring},
+                        {six.string_types[0]},
                         required)
 
         else:

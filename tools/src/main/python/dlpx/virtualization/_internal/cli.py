@@ -9,6 +9,7 @@ import traceback
 from contextlib import contextmanager
 
 import click
+import six
 from dlpx.virtualization._internal import (click_util, const, exceptions,
                                            logging_util, package_util)
 from dlpx.virtualization._internal.commands import build as build_internal
@@ -16,6 +17,7 @@ from dlpx.virtualization._internal.commands import \
     download_logs as download_logs_internal
 from dlpx.virtualization._internal.commands import initialize as init_internal
 from dlpx.virtualization._internal.commands import upload as upload_internal
+from dlpx.virtualization.common.util import to_str
 
 #
 # Setup the logger and file handler. This needs to be done immediately as
@@ -45,8 +47,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
 # adding it to CONTEXT_SETTINGS to avoid any side-effects on other commands.
 #
 CONTEXT_SETTINGS_INIT = dict(help_option_names=['-h', '--help'],
-                             obj=click_util.ConfigFileProcessor.read_config(),
-                             token_normalize_func=lambda x: x.encode("ascii"))
+                             obj=click_util.ConfigFileProcessor.read_config())
+
+if six.PY2:
+    CONTEXT_SETTINGS_INIT["token_normalize_func"] = lambda x: x.encode("ascii")
 
 DVP_CONFIG_MAP = CONTEXT_SETTINGS['obj']
 
@@ -97,10 +101,11 @@ def delphix_sdk(verbose, quiet):
     #
     logging_util.add_console_handler(console_logging_level)
 
-    if sys.version_info[:2] != (2, 7):
+    if sys.version_info[:2] != (2, 7) and sys.version_info[:2] != (3, 8):
         raise exceptions.UserError(
             'Python version check failed.'
-            'Supported version is 2.7.x, found {}'.format(sys.version_info))
+            'Supported versions are 2.7.x and 3.8.x, found {}'
+            .format(sys.version_info))
 
 
 @delphix_sdk.command(context_settings=CONTEXT_SETTINGS_INIT)
@@ -198,9 +203,13 @@ def build(plugin_config, upload_artifact, generate_only, dev):
     Build the plugin code and generate upload artifact file using the
     configuration provided in the plugin config file.
     """
+    plugin_config = to_str(plugin_config)
+
     # Set upload artifact to None if -g is true.
     if generate_only:
         upload_artifact = None
+    else:
+        upload_artifact = to_str(upload_artifact)
 
     local_vsdk_root = None
 
@@ -313,6 +322,11 @@ def download_logs(engine, plugin_config, user, password, directory):
     """
     Download plugin logs from a target Delphix Engine to a local directory.
     """
+    engine = to_str(engine)
+    plugin_config = to_str(plugin_config)
+    user = to_str(user)
+    password = to_str(password)
+    directory = to_str(directory)
     with command_error_handler():
         download_logs_internal.download_logs(engine, plugin_config, user,
                                              password, directory)

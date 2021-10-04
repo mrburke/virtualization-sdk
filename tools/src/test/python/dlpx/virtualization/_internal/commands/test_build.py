@@ -4,6 +4,7 @@
 
 import json
 import os
+import six
 
 import yaml
 from dlpx.virtualization._internal import const, exceptions
@@ -497,7 +498,7 @@ class TestPluginUtil:
             build.build(plugin_config_file, artifact_file, False, False)
 
         message = err_info.value.message
-        assert "'BAD_LANGUAGE' is not one of ['PYTHON27']" in message
+        assert "'BAD_LANGUAGE' is not one of ['PYTHON38']" in message
 
         assert not mock_generate_python.called
 
@@ -602,10 +603,16 @@ class TestPluginUtil:
             build.build(plugin_config_file, artifact_file, False, False)
 
         message = err_info.value.message
-        assert (
-            'Failed to load schemas because \'{}\' is not a valid json file.'
-            ' Error: Extra data: line 2 column 1 - line 2 column 9'
-            ' (char 19 - 27)'.format(schema_file)) in message
+        if six.PY2:
+            assert (
+                "Failed to load schemas because '{}' is not a valid json file."
+                " Error: Extra data: line 2 column 1 - line 2 column 9"
+                " (char 19 - 27)").format(schema_file) in message
+        else:
+            assert (
+               "Failed to load schemas because '{}' is not a valid json file."
+               " Error: Extra data: line 2 column 1 (char 19) \n\nBUILD"
+               " FAILED.").format(schema_file) in message
 
         assert not mock_generate_python.called
 
@@ -829,5 +836,8 @@ class TestPluginUtil:
             build.build(plugin_config_file, artifact_file, False, False)
 
         message = err_info.value.message
-        exp_message = "No module named {module}".format(module=entry_module)
+        if six.PY2:
+            exp_message = "No module named {module}".format(module=entry_module)
+        else:
+            exp_message = "No module named '{module}'".format(module=entry_module)
         assert exp_message in message

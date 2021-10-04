@@ -33,10 +33,12 @@ from dlpx.virtualization.libs.exceptions import (IncorrectArgumentTypeError,
 from dlpx.virtualization.common._common_classes import (RemoteConnection,
                                                         PasswordCredentials,
                                                         KeyPairCredentials)
+from dlpx.virtualization.common.util import response_to_str
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Struct
 
 import logging
+import six
 
 
 __all__ = [
@@ -135,23 +137,23 @@ def run_bash(remote_connection, command, variables=None, use_login_shell=False,
             'remote_connection',
             type(remote_connection),
             RemoteConnection)
-    if not isinstance(command, basestring):
-        raise IncorrectArgumentTypeError('command', type(command), basestring)
+    if not isinstance(command, six.string_types):
+        raise IncorrectArgumentTypeError('command', type(command), six.string_types[0])
     if variables and not isinstance(variables, dict):
         raise IncorrectArgumentTypeError(
             'variables',
             type(variables),
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
-    if (variables and (not all(isinstance(variable, basestring)
+    if (variables and (not all(isinstance(variable, six.string_types)
                                for variable in variables.keys()) or
-                       not all(isinstance(value, basestring)
+                       not all(isinstance(value, six.string_types)
                                for value in variables.values()))):
         raise IncorrectArgumentTypeError(
             'variables',
             {(type(variable), type(value))
              for variable, value in variables.items()},
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
     if use_login_shell and not isinstance(use_login_shell, bool):
         raise IncorrectArgumentTypeError(
@@ -165,6 +167,7 @@ def run_bash(remote_connection, command, variables=None, use_login_shell=False,
         run_bash_request.variables[variable] = value
 
     run_bash_response = internal_libs.run_bash(run_bash_request)
+    response_to_str(run_bash_response)
     _check_exit_code(run_bash_response, check)
     return _handle_response(run_bash_response)
 
@@ -198,40 +201,40 @@ def run_sync(remote_connection, source_directory, rsync_user=None,
             'remote_connection',
             type(remote_connection),
             RemoteConnection)
-    if not isinstance(source_directory, basestring):
+    if not isinstance(source_directory, six.string_types):
         raise IncorrectArgumentTypeError(
-            'source_directory', type(source_directory), basestring)
-    if rsync_user and not isinstance(rsync_user, basestring):
+            'source_directory', type(source_directory), six.string_types[0])
+    if rsync_user and not isinstance(rsync_user, six.string_types):
         raise IncorrectArgumentTypeError(
             'rsync_user',
             type(rsync_user),
-            basestring,
+            six.string_types[0],
             False)
     if exclude_paths and not isinstance(exclude_paths, list):
         raise IncorrectArgumentTypeError(
             'exclude_paths',
             type(exclude_paths),
-            [basestring],
+            [six.string_types[0]],
             False)
     if (exclude_paths and not all(isinstance(
-            path, basestring) for path in exclude_paths)):
+            path, six.string_types) for path in exclude_paths)):
         raise IncorrectArgumentTypeError(
             'exclude_paths',
             [type(path) for path in exclude_paths],
-            [basestring],
+            [six.string_types[0]],
             False)
     if sym_links_to_follow and not isinstance(sym_links_to_follow, list):
         raise IncorrectArgumentTypeError(
             'sym_links_to_follow',
             type(sym_links_to_follow),
-            [basestring],
+            [six.string_types[0]],
             False)
-    if (sym_links_to_follow and not all(isinstance(link, basestring)
+    if (sym_links_to_follow and not all(isinstance(link, six.string_types)
                                         for link in sym_links_to_follow)):
         raise IncorrectArgumentTypeError(
             'sym_links_to_follow',
             [type(link) for link in sym_links_to_follow],
-            [basestring],
+            [six.string_types[0]],
             False)
 
     run_sync_request = libs_pb2.RunSyncRequest()
@@ -245,6 +248,7 @@ def run_sync(remote_connection, source_directory, rsync_user=None,
         run_sync_request.sym_links_to_follow.extend(sym_links_to_follow)
 
     response = internal_libs.run_sync(run_sync_request)
+    response_to_str(response)
     _handle_response(response)
 
 
@@ -288,23 +292,23 @@ def run_powershell(remote_connection, command, variables=None, check=False):
             'remote_connection',
             type(remote_connection),
             RemoteConnection)
-    if not isinstance(command, basestring):
-        raise IncorrectArgumentTypeError('command', type(command), basestring)
+    if not isinstance(command, six.string_types):
+        raise IncorrectArgumentTypeError('command', type(command), six.string_types[0])
     if variables and not isinstance(variables, dict):
         raise IncorrectArgumentTypeError(
             'variables',
             type(variables),
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
-    if (variables and (not all(isinstance(variable, basestring)
+    if (variables and (not all(isinstance(variable, six.string_types)
                                for variable in variables.keys()) or
-                       not all(isinstance(value, basestring)
+                       not all(isinstance(value, six.string_types)
                                for value in variables.values()))):
         raise IncorrectArgumentTypeError(
             'variables',
             {(type(variable), type(value))
              for variable, value in variables.items()},
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
 
     run_powershell_request = libs_pb2.RunPowerShellRequest()
@@ -314,6 +318,7 @@ def run_powershell(remote_connection, command, variables=None, check=False):
         run_powershell_request.variables[variable] = value
     run_powershell_response = internal_libs.run_powershell(
         run_powershell_request)
+    response_to_str(run_powershell_response)
     _check_exit_code(run_powershell_response, check)
     return _handle_response(run_powershell_response)
 
@@ -353,23 +358,23 @@ def run_expect(remote_connection, command, variables=None, check=False):
             'remote_connection',
             type(remote_connection),
             RemoteConnection)
-    if not isinstance(command, basestring):
-        raise IncorrectArgumentTypeError('command', type(command), basestring)
+    if not isinstance(command, six.string_types):
+        raise IncorrectArgumentTypeError('command', type(command), six.string_types[0])
     if variables and not isinstance(variables, dict):
         raise IncorrectArgumentTypeError(
             'variables',
             type(variables),
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
-    if (variables and (not all(isinstance(variable, basestring)
+    if (variables and (not all(isinstance(variable, six.string_types)
                                for variable in variables.keys()) or
-                       not all(isinstance(value, basestring)
+                       not all(isinstance(value, six.string_types)
                                for value in variables.values()))):
         raise IncorrectArgumentTypeError(
             'variables',
             {(type(variable), type(value))
              for variable, value in variables.items()},
-            {basestring: basestring},
+            {six.string_types[0]: six.string_types[0]},
             False)
 
     run_expect_request = libs_pb2.RunExpectRequest()
@@ -379,6 +384,7 @@ def run_expect(remote_connection, command, variables=None, check=False):
         run_expect_request.variables[variable] = value
 
     run_expect_response = internal_libs.run_expect(run_expect_request)
+    response_to_str(run_expect_response)
     _check_exit_code(run_expect_response, check)
     return _handle_response(run_expect_response)
 
@@ -415,6 +421,7 @@ def _log_request(message, log_level):
         log_request.level = libs_pb2.LogRequest.ERROR
 
     response = internal_libs.log(log_request)
+    # response_to_str(response)
     _handle_response(response)
 
 
@@ -439,7 +446,7 @@ def retrieve_credentials(credentials_supplier):
     credentials_request.credentials_supplier.CopyFrom(credentials_struct)
 
     response = internal_libs.retrieve_credentials(credentials_request)
-
+    response_to_str(response)
     credentials_result = _handle_response(response)
     if credentials_result.password != "":
         return PasswordCredentials(credentials_result.username, credentials_result.password)
@@ -455,17 +462,17 @@ def upgrade_password(password, username=None):
     value into a more generic credentials supplier object.
 
     Args:
-        password (basestring): Plain password string.
-        username (basestring, defaults to None): User name contained in the password credential supplier to return.
+        password (str): Plain password string.
+        username (str, defaults to None): User name contained in the password credential supplier to return.
     Return:
         Credentials supplier (dict) that supplies the given password and username.
     """
     from dlpx.virtualization._engine import libs as internal_libs
 
-    if not isinstance(password, basestring):
-        raise IncorrectArgumentTypeError('password', type(password), basestring)
-    if username and not isinstance(username, basestring):
-        raise IncorrectArgumentTypeError('username', type(username), basestring, required=False)
+    if not isinstance(password, six.string_types):
+        raise IncorrectArgumentTypeError('password', type(password), six.string_types[0])
+    if username and not isinstance(username, six.string_types):
+        raise IncorrectArgumentTypeError('username', type(username), six.string_types[0], required=False)
 
     upgrade_password_request = libs_pb2.UpgradePasswordRequest()
     upgrade_password_request.password = password
@@ -473,6 +480,6 @@ def upgrade_password(password, username=None):
         upgrade_password_request.username = username
 
     response = internal_libs.upgrade_password(upgrade_password_request)
-
+    response_to_str(response)
     upgrade_password_result = _handle_response(response)
     return json_format.MessageToDict(upgrade_password_result.credentials_supplier)

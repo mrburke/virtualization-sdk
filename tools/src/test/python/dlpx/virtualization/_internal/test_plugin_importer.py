@@ -1,14 +1,14 @@
 #
 # Copyright (c) 2019, 2020 by Delphix. All rights reserved.
 #
-import exceptions
 import os
+import re
 import uuid
 from collections import OrderedDict
 from multiprocessing import Queue
 
 from dlpx.virtualization._internal import (file_util, plugin_util,
-                                           plugin_validator, plugin_importer)
+                                           plugin_validator, plugin_importer, exceptions)
 from dlpx.virtualization._internal.plugin_importer import PluginImporter
 
 import mock
@@ -231,12 +231,12 @@ class TestPluginImporter:
                                    plugin_config_file, src_dir,
                                    plugin_module_content):
         plugin_config_content = OrderedDict([
-            ('id', str(uuid.uuid4())), ('name', 'staged'.encode('utf-8')),
-            ('version', '0.1.0'), ('language', 'PYTHON27'),
-            ('hostTypes', ['UNIX']), ('pluginType', 'STAGED'.encode('utf-8')),
+            ('id', str(uuid.uuid4())), ('name', 'staged'),
+            ('version', '0.1.0'), ('language', 'PYTHON38'),
+            ('hostTypes', ['UNIX']), ('pluginType', 'STAGED'),
             ('manualDiscovery', True),
-            ('entryPoint', 'staged_plugin:staged'.encode('utf-8')),
-            ('srcDir', src_dir), ('schemaFile', 'schema.json'.encode('utf-8'))
+            ('entryPoint', 'staged_plugin:staged'),
+            ('srcDir', src_dir), ('schemaFile', 'schema.json')
         ])
         mock_import.return_value = plugin_module_content
         try:
@@ -280,7 +280,8 @@ class TestPluginImporter:
             importer.validate_plugin_module()
 
         message = err_info.value.message
-        assert expected_error in message
+        pattern = re.compile("^Error: No module named (')?dlpxxx(')?.*")
+        assert re.match(pattern, message) is not None
 
     @staticmethod
     @pytest.mark.parametrize(

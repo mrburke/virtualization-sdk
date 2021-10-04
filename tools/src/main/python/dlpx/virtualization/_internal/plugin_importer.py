@@ -193,7 +193,7 @@ def _import_module_and_get_manifest(queue, src_dir, module, entry_point,
 
     try:
         module_content = _import_helper(queue, src_dir, module)
-    except exceptions.UserError:
+    except exceptions.UserError as e:
         #
         # Exception here means there was an error importing the module and
         # queue is updated with the exception details inside _import_helper.

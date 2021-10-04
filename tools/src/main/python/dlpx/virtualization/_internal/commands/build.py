@@ -8,12 +8,13 @@ import copy
 import json
 import logging
 import os
-import StringIO
+import six
 import zipfile
 
 from dlpx.virtualization._internal import (codegen, exceptions, file_util,
                                            package_util,
                                            plugin_dependency_util, plugin_util)
+from dlpx.virtualization.common.util import to_bytes, to_str
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ def build(plugin_config,
     logger.debug(
         'Build parameters include plugin_config: %s, upload_artifact: %s,'
         ' generate_only: %s', plugin_config, upload_artifact, generate_only)
+
+    plugin_config = to_str(plugin_config)
+    upload_artifact = to_str(upload_artifact)
 
     if local_vsdk_root:
         local_vsdk_root = os.path.expanduser(local_vsdk_root)
@@ -187,6 +191,7 @@ def prepare_upload_artifact(plugin_config_content, src_dir, schemas, manifest):
     # This is the output dictionary that will be written
     # to the upload_artifact.
     #
+
     artifact = {
         # Hard code the type to a set default.
         'type':
@@ -198,7 +203,7 @@ def prepare_upload_artifact(plugin_config_content, src_dir, schemas, manifest):
         # set default value of locale to en-us
         'defaultLocale':
         plugin_config_content.get('defaultLocale', LOCALE_DEFAULT),
-        # set default value of language to PYTHON27
+        # set default value of language to PYTHON38
         'language':
         plugin_config_content['language'],
         'hostTypes':
@@ -252,7 +257,7 @@ def prepare_upload_artifact(plugin_config_content, src_dir, schemas, manifest):
         artifact['minimumLuaVersion'] = plugin_config_content[
             'minimumLuaVersion']
 
-    return artifact
+    return to_str(artifact)
 
 
 def get_linked_source_definition_type(plugin_config_content):
@@ -332,7 +337,7 @@ def zip_and_encode_source_files(source_code_dir):
     Jython creates a class loader to import .py files which the
     security manager prohibits.
     """
-
+    source_code_dir = to_str(source_code_dir)
     #
     # The contents of the zip should have relative and not absolute paths or
     # else the imports won't work as expected.
@@ -348,7 +353,7 @@ def zip_and_encode_source_files(source_code_dir):
             raise exceptions.UserError(
                 'Failed to compile source code in the directory {}.'.format(
                     source_code_dir))
-        out_file = StringIO.StringIO()
+        out_file = six.BytesIO()
         with zipfile.ZipFile(out_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for root, _, files in os.walk('.'):
                 for filename in files:

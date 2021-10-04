@@ -6,6 +6,7 @@ import json
 
 import mock
 import pytest
+import six
 from dlpx.virtualization._internal import const, exceptions
 from dlpx.virtualization._internal.plugin_validator import PluginValidator
 
@@ -23,9 +24,14 @@ class TestPluginValidator:
             validator.validate_plugin_config()
 
         message = err_info.value.message
-        assert ('Failed to load schemas because {} is not a valid json file.'
-                ' Error: Extra data: line 2 column 1 - line 2 column 9'
-                ' (char 19 - 27)'.format(schema_file)) in message
+        if six.PY2:
+            assert ('Failed to load schemas because {} is not a valid json file.'
+                    ' Error: Extra data: line 2 column 1 - line 2 column 9'
+                    ' (char 19 - 27)'.format(schema_file)) in message
+        else:
+            assert ('Failed to load schemas because {} is not a valid json file.'
+                    ' Error: Extra data: line 2 column 1 (char 19)'
+                    .format(schema_file))in message
 
     @staticmethod
     @pytest.mark.parametrize('plugin_config_file', ['/dir/plugin_config.yml'])

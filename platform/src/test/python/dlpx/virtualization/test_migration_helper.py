@@ -3,7 +3,7 @@
 #
 
 import pytest
-import conftest
+from . import conftest
 from dlpx.virtualization.platform import migration_helper as m
 from dlpx.virtualization.platform.exceptions import (
     MigrationIdAlreadyUsedError, MigrationIdIncorrectFormatError,

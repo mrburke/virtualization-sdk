@@ -4,13 +4,13 @@
 
 import mock
 import pytest
+import six
 
 from dlpx.virtualization.api import libs_pb2
 from dlpx.virtualization import libs
 from dlpx.virtualization.libs.exceptions import (
     IncorrectArgumentTypeError, LibraryError, PluginScriptError)
 from google.protobuf import json_format
-from dlpx.virtualization.common._common_classes import (PasswordCredentials)
 
 
 class TestLibsRunBash:
@@ -144,10 +144,16 @@ class TestLibsRunBash:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_bash(connection, command, variables, use_login_shell)
 
-        assert err_info.value.message == (
-            "The function run_bash's argument 'remote_connection' was"
-            " type 'str' but should be of"
-            " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'remote_connection' was"
+                " type 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'remote_connection' was"
+                " class 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
 
     @staticmethod
     def test_run_bash_bad_command(remote_connection):
@@ -159,9 +165,14 @@ class TestLibsRunBash:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_bash(remote_connection, command, variables, use_login_shell)
 
-        assert err_info.value.message == (
-            "The function run_bash's argument 'command' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'command' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'command' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_run_bash_variables_not_dict(remote_connection):
@@ -173,10 +184,16 @@ class TestLibsRunBash:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_bash(remote_connection, command, variables, use_login_shell)
 
-        assert err_info.value.message == (
-            "The function run_bash's argument 'variables' was"
-            " type 'str' but should be of"
-            " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'variables' was"
+                " type 'str' but should be of"
+                " type 'dict of basestring:basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'variables' was"
+                " class 'str' but should be of"
+                " type 'dict of builtins.str:builtins.str' if defined.")
 
     @staticmethod
     def test_run_bash_bad_variables(remote_connection):
@@ -191,10 +208,16 @@ class TestLibsRunBash:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_bash(remote_connection, command, variables, use_login_shell)
 
-        message = ("The function run_bash's argument 'variables' was"
-                   " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
-                   " but should be of"
-                   " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            message = ("The function run_bash's argument 'variables' was"
+                       " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
+                       " but should be of"
+                       " type 'dict of basestring:basestring' if defined.")
+        else:
+            message = ("The function run_bash's argument 'variables' was"
+                       " a dict of {{class 'str':class '{}', class 'str':class '{}'}}"
+                       " but should be of"
+                       " type 'dict of builtins.str:builtins.str' if defined.")
         assert (err_info.value.message == message.format('int', 'str') or
                 err_info.value.message == message.format('str', 'int'))
 
@@ -208,9 +231,14 @@ class TestLibsRunBash:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_bash(remote_connection, command, variables, use_login_shell)
 
-        assert err_info.value.message == (
-            "The function run_bash's argument 'use_login_shell' was"
-            " type 'str' but should be of type 'bool' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'use_login_shell' was"
+                " type 'str' but should be of type 'bool' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_bash's argument 'use_login_shell' was"
+                " class 'str' but should be of class 'bool' if defined.")
 
 
 class TestLibsRunSync:
@@ -297,10 +325,16 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'remote_connection' was"
-            " type 'str' but should be of"
-            " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'remote_connection' was"
+                " type 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'remote_connection' was"
+                " class 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
 
     @staticmethod
     def test_run_sync_bad_source_directory(remote_connection):
@@ -318,9 +352,14 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'source_directory' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'source_directory' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'source_directory' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_run_sync_bad_rsync_user(remote_connection):
@@ -338,9 +377,14 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'rsync_user' was"
-            " type 'int' but should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'rsync_user' was"
+                " type 'int' but should be of type 'basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'rsync_user' was"
+                " class 'int' but should be of class 'str' if defined.")
 
     @staticmethod
     def test_run_sync_exclude_paths_not_list(remote_connection):
@@ -358,10 +402,16 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'exclude_paths' was"
-            " type 'str' but should be of"
-            " type 'list of basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'exclude_paths' was"
+                " type 'str' but should be of"
+                " type 'list of basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'exclude_paths' was"
+                " class 'str' but should be of"
+                " type 'list of builtins.str' if defined.")
 
     @staticmethod
     def test_run_sync_bad_exclude_paths(remote_connection):
@@ -379,10 +429,16 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'exclude_paths' was a list of"
-            " [type 'str', type 'int'] but should be of"
-            " type 'list of basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'exclude_paths' was a list of"
+                " [type 'str', type 'int'] but should be of"
+                " type 'list of basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'exclude_paths' was a list of"
+                " [class 'str', class 'int'] but should be of"
+                " type 'list of builtins.str' if defined.")
 
     @staticmethod
     def test_run_sync_sym_links_to_follow_not_list(remote_connection):
@@ -400,10 +456,16 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'sym_links_to_follow' was"
-            " type 'str' but should be of"
-            " type 'list of basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'sym_links_to_follow' was"
+                " type 'str' but should be of"
+                " type 'list of basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'sym_links_to_follow' was"
+                " class 'str' but should be of"
+                " type 'list of builtins.str' if defined.")
 
     @staticmethod
     def test_run_sync_bad_sym_links_to_follow(remote_connection):
@@ -421,10 +483,16 @@ class TestLibsRunSync:
                 exclude_paths,
                 sym_links_to_follow)
 
-        assert err_info.value.message == (
-            "The function run_sync's argument 'sym_links_to_follow' was"
-            " a list of [type 'str', type 'int'] but should be of"
-            " type 'list of basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'sym_links_to_follow' was"
+                " a list of [type 'str', type 'int'] but should be of"
+                " type 'list of basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_sync's argument 'sym_links_to_follow' was"
+                " a list of [class 'str', class 'int'] but should be of"
+                " type 'list of builtins.str' if defined.")
 
 
 class TestLibsRunPowershell:
@@ -508,8 +576,8 @@ class TestLibsRunPowershell:
         with mock.patch("dlpx.virtualization._engine.libs.run_powershell",
                         return_value=response, create=True):
             with pytest.raises(PluginScriptError) as info:
-                response = libs.run_powershell(remote_connection, "test_command",
-                                               check=True)
+                libs.run_powershell(remote_connection, "test_command",
+                                    check=True)
             assert info.value.message == expected_message
 
     @staticmethod
@@ -550,10 +618,16 @@ class TestLibsRunPowershell:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_powershell(connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_powershell's argument 'remote_connection' was"
-            " type 'str' but should be of"
-            " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'remote_connection' was"
+                " type 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'remote_connection' was"
+                " class 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
 
     @staticmethod
     def test_run_powershell_bad_command(remote_connection):
@@ -564,9 +638,14 @@ class TestLibsRunPowershell:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_powershell(remote_connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_powershell's argument 'command' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'command' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'command' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_run_powershell_variables_not_dict(remote_connection):
@@ -577,10 +656,16 @@ class TestLibsRunPowershell:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_powershell(remote_connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_powershell's argument 'variables' was"
-            " type 'str' but should be of"
-            " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'variables' was"
+                " type 'str' but should be of"
+                " type 'dict of basestring:basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_powershell's argument 'variables' was"
+                " class 'str' but should be of"
+                " type 'dict of builtins.str:builtins.str' if defined.")
 
     @staticmethod
     def test_run_powershell_bad_variables(remote_connection):
@@ -594,10 +679,16 @@ class TestLibsRunPowershell:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_powershell(remote_connection, command, variables)
 
-        message = ("The function run_powershell's argument 'variables' was"
-                   " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
-                   " but should be of"
-                   " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            message = ("The function run_powershell's argument 'variables' was"
+                       " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
+                       " but should be of"
+                       " type 'dict of basestring:basestring' if defined.")
+        else:
+            message = ("The function run_powershell's argument 'variables' was"
+                       " a dict of {{class 'str':class '{}', class 'str':class '{}'}}"
+                       " but should be of"
+                       " type 'dict of builtins.str:builtins.str' if defined.")
         assert (err_info.value.message == message.format('int', 'str') or
                 err_info.value.message == message.format('str', 'int'))
 
@@ -683,8 +774,7 @@ class TestLibsRunExpect:
         with mock.patch("dlpx.virtualization._engine.libs.run_expect",
                         return_value=response, create=True):
             with pytest.raises(PluginScriptError) as info:
-                response = libs.run_expect(remote_connection, "test_command",
-                                           check=True)
+                libs.run_expect(remote_connection, "test_command", check=True)
             assert info.value.message == expected_message
 
     @staticmethod
@@ -725,10 +815,16 @@ class TestLibsRunExpect:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_expect(connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_expect's argument 'remote_connection' was"
-            " type 'str' but should be of"
-            " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'remote_connection' was"
+                " type 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'remote_connection' was"
+                " class 'str' but should be of"
+                " class 'dlpx.virtualization.common._common_classes.RemoteConnection'.")
 
     @staticmethod
     def test_run_expect_bad_command(remote_connection):
@@ -739,9 +835,14 @@ class TestLibsRunExpect:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_expect(remote_connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_expect's argument 'command' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'command' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'command' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_run_expect_variables_not_dict(remote_connection):
@@ -752,10 +853,16 @@ class TestLibsRunExpect:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_expect(remote_connection, command, variables)
 
-        assert err_info.value.message == (
-            "The function run_expect's argument 'variables' was"
-            " type 'str' but should be of"
-            " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'variables' was"
+                " type 'str' but should be of"
+                " type 'dict of basestring:basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function run_expect's argument 'variables' was"
+                " class 'str' but should be of"
+                " type 'dict of builtins.str:builtins.str' if defined.")
 
     @staticmethod
     def test_run_expect_bad_variables(remote_connection):
@@ -769,10 +876,16 @@ class TestLibsRunExpect:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.run_expect(remote_connection, command, variables)
 
-        message = ("The function run_expect's argument 'variables' was"
-                   " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
-                   " but should be of"
-                   " type 'dict of basestring:basestring' if defined.")
+        if six.PY2:
+            message = ("The function run_expect's argument 'variables' was"
+                       " a dict of {{type 'str':type '{}', type 'str':type '{}'}}"
+                       " but should be of"
+                       " type 'dict of basestring:basestring' if defined.")
+        else:
+            message = ("The function run_expect's argument 'variables' was"
+                       " a dict of {{class 'str':class '{}', class 'str':class '{}'}}"
+                       " but should be of"
+                       " type 'dict of builtins.str:builtins.str' if defined.")
         assert (err_info.value.message == message.format('int', 'str') or
                 err_info.value.message == message.format('str', 'int'))
 
@@ -860,9 +973,14 @@ class TestLibsRetrieveCredentials:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.retrieve_credentials(credentials_supplier)
 
-        assert err_info.value.message == (
-            "The function retrieve_credentials's argument 'credentials_supplier' was"
-            " type 'int' but should be of type 'dict'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function retrieve_credentials's argument 'credentials_supplier' was"
+                " type 'int' but should be of type 'dict'.")
+        else:
+            assert err_info.value.message == (
+                "The function retrieve_credentials's argument 'credentials_supplier' was"
+                " class 'int' but should be of class 'dict'.")
 
 
 class TestLibsUpgradePassword:
@@ -914,9 +1032,14 @@ class TestLibsUpgradePassword:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.upgrade_password(expected_password, username=expected_username)
 
-        assert err_info.value.message == (
-            "The function upgrade_password's argument 'password' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function upgrade_password's argument 'password' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "The function upgrade_password's argument 'password' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_upgrade_password_invalid_username():
@@ -926,6 +1049,11 @@ class TestLibsUpgradePassword:
         with pytest.raises(IncorrectArgumentTypeError) as err_info:
             libs.upgrade_password(expected_password, username=expected_username)
 
-        assert err_info.value.message == (
-            "The function upgrade_password's argument 'username' was"
-            " type 'int' but should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "The function upgrade_password's argument 'username' was"
+                " type 'int' but should be of type 'basestring' if defined.")
+        else:
+            assert err_info.value.message == (
+                "The function upgrade_password's argument 'username' was"
+                " class 'int' but should be of class 'str' if defined.")

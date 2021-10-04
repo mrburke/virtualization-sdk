@@ -6,10 +6,13 @@ import importlib
 import itertools
 import json
 import os
+import re
+import six
 import subprocess
 import sys
 
 from dlpx.virtualization._internal import codegen
+from dlpx.virtualization.common.util import to_bytes
 
 import pytest
 
@@ -35,7 +38,7 @@ def module(tmp_factory, schema_content):
     # create the config file to point to the tmpdir
     config_dict = {'packageName': tmpdir.name}
     config_file = basedir.joinpath('codegen-config.json')
-    config_file.write_bytes(json.dumps(config_dict, indent=2))
+    config_file.write_bytes(to_bytes(json.dumps(config_dict, indent=2)))
     execute_swagger_codegen(swagger_file, str(config_file), str(basedir))
 
     return importlib.import_module('.definitions', package=tmpdir.name)
@@ -109,14 +112,14 @@ class TestTemplateStringProperty:
                 'type': 'object',
                 'additionalProperties': False,
                 'properties': {
+                    'requiredStringProperty': {
+                        'type': 'string',
+                        'pattern': "^test.*"
+                    },
                     'stringProperty': {
                         'type': 'string',
                         'minLength': 5,
                         'maxLength': 10
-                    },
-                    'requiredStringProperty': {
-                        'type': 'string',
-                        'pattern': "^test.*"
                     }
                 },
                 'required': ['requiredStringProperty']
@@ -198,7 +201,7 @@ class TestTemplateStringProperty:
 
     @staticmethod
     def test_required_param_missing_setter(module):
-        test_object = module.TestDefinition('test string')
+        test_object = module.TestDefinition(required_string_property='test string')
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.required_string_property = None
 
@@ -209,29 +212,39 @@ class TestTemplateStringProperty:
     @staticmethod
     def test_not_string(module):
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
-            module.TestDefinition('test string', 10)
+            module.TestDefinition(required_string_property='test string', string_property=10)
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_property' was"
-            " type 'int' but should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was"
+                " type 'int' but should be of type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was"
+                " class 'int' but should be of class 'str' if defined.")
 
     @staticmethod
     def test_not_string_setter(module):
-        test_object = module.TestDefinition('test string')
+        test_object = module.TestDefinition(required_string_property='test string')
 
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
             test_object.string_property = 10
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_property' was"
-            " type 'int' but should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was"
+                " type 'int' but should be of type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was"
+                " class 'int' but should be of class 'str' if defined.")
 
     @staticmethod
     def test_min_length(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition('test string', 'test')
+            module.TestDefinition(required_string_property='test string', string_property='test')
 
         message = err_info.value.message
         assert message == ("Invalid value for 'string_property', length was 4"
@@ -239,7 +252,7 @@ class TestTemplateStringProperty:
 
     @staticmethod
     def test_min_length_setter(module):
-        test_object = module.TestDefinition('test string')
+        test_object = module.TestDefinition(required_string_property='test string')
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.string_property = 'test'
@@ -251,7 +264,9 @@ class TestTemplateStringProperty:
     @staticmethod
     def test_max_length(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition('test string', 'test too long of string')
+            module.TestDefinition(
+                required_string_property='test string',
+                string_property='test too long of string')
 
         message = err_info.value.message
         assert message == ("Invalid value for 'string_property', length was 23"
@@ -259,7 +274,7 @@ class TestTemplateStringProperty:
 
     @staticmethod
     def test_max_length_setter(module):
-        test_object = module.TestDefinition('test string')
+        test_object = module.TestDefinition(required_string_property='test string')
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.string_property = 'test too long of string'
@@ -271,7 +286,7 @@ class TestTemplateStringProperty:
     @staticmethod
     def test_bad_pattern(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition('bad test string')
+            module.TestDefinition(required_string_property='bad test string')
 
         message = err_info.value.message
         assert message == ("Invalid value for 'required_string_property',"
@@ -280,7 +295,7 @@ class TestTemplateStringProperty:
 
     @staticmethod
     def test_bad_pattern_setter(module):
-        test_object = module.TestDefinition('test string')
+        test_object = module.TestDefinition(required_string_property='test string')
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.required_string_property = 'bad test string'
@@ -327,7 +342,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_success(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
         assert test_object.required_number_property == 200.5
         assert not test_object.number_property
 
@@ -344,7 +361,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_success_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
         test_object.number_property = 13.5
         test_object.integer_property = 18
 
@@ -365,7 +384,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_success_number_is_int(module):
-        test_object = module.TestDefinition(200, 13, -50, 18)
+        test_object = module.TestDefinition(
+            required_number_property=200, number_property=13,
+            required_integer_property=-50, integer_property=18)
 
         assert test_object.required_number_property == 200
         assert test_object.number_property == 13
@@ -375,12 +396,17 @@ class TestTemplateNumericProperty:
     @staticmethod
     def test_int_passed_in_as_float(module):
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
-            module.TestDefinition(200.5, 13.5, -50.5, 18.5)
+            module.TestDefinition(required_number_property=200.5, required_integer_property=2.2)
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_integer_property' was"
-            " type 'float' but should be of type 'int'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_integer_property' was"
+                " type 'float' but should be of type 'int'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_integer_property' was"
+                " class 'float' but should be of class 'int'.")
 
     @staticmethod
     def test_required_param_missing(module):
@@ -392,21 +418,25 @@ class TestTemplateNumericProperty:
                            " must not be 'None'.")
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(200.5)
+            module.TestDefinition(required_number_property=200.5)
 
         message = err_info.value.message
         assert message == ("The required parameter 'required_integer_property'"
                            " must not be 'None'.")
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(None, 13.5, -50, 18)
+            module.TestDefinition(
+                required_number_property=None, number_property=13.5,
+                required_integer_property=-50, integer_property=18)
 
         message = err_info.value.message
         assert message == ("The required parameter 'required_number_property'"
                            " must not be 'None'.")
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(200.5, 13.5, None, 18)
+            module.TestDefinition(
+                required_number_property=200.5, number_property=13.5,
+                required_integer_property=None, integer_property=18)
 
         message = err_info.value.message
         assert message == ("The required parameter 'required_integer_property'"
@@ -414,7 +444,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_required_param_missing_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.required_number_property = None
 
@@ -432,45 +464,71 @@ class TestTemplateNumericProperty:
     @staticmethod
     def test_not_number(module):
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
-            module.TestDefinition('string', None, -50)
+            module.TestDefinition(
+                required_number_property='string', number_property=None,
+                required_integer_property=-50)
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_number_property' was"
-            " type 'str' but should be of type 'float'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_number_property' was"
+                " type 'str' but should be of type 'float'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_number_property' was"
+                " class 'str' but should be of class 'float'.")
 
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
-            module.TestDefinition(200.5, None, 'string')
+            module.TestDefinition(
+                required_number_property=200.5, number_property=None,
+                required_integer_property='string')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_integer_property' was"
-            " type 'str' but should be of type 'int'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_integer_property' was"
+                " type 'str' but should be of type 'int'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_integer_property' was"
+                " class 'str' but should be of class 'int'.")
 
     @staticmethod
     def test_not_number_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
 
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
             test_object.number_property = 'string'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'number_property' was"
-            " type 'str' but should be of type 'float' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'number_property' was"
+                " type 'str' but should be of type 'float' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'number_property' was"
+                " class 'str' but should be of class 'float' if defined.")
 
         with pytest.raises(module.GeneratedClassesTypeError) as err_info:
             test_object.integer_property = 'string'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'integer_property' was"
-            " type 'str' but should be of type 'int' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'integer_property' was"
+                " type 'str' but should be of type 'int' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'integer_property' was"
+                " class 'str' but should be of class 'int' if defined.")
 
     @staticmethod
     def test_minimum(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(200.5, 1.0, -50)
+            module.TestDefinition(required_number_property=200.5, number_property=1.0, required_integer_property=-50)
 
         message = err_info.value.message
         assert message == ("Invalid value for 'number_property', value was 1.0"
@@ -478,7 +536,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_minimum_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.number_property = 1.0
@@ -490,7 +550,9 @@ class TestTemplateNumericProperty:
     @staticmethod
     def test_maximum(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(200.5, 13.5, -50, 21)
+            module.TestDefinition(
+                required_number_property=200.5, number_property=13.5,
+                required_integer_property=-50, integer_property=21)
 
         message = err_info.value.message
         assert message == ("Invalid value for 'integer_property', value was 21"
@@ -498,7 +560,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_maximum_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50, None)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50, integer_property=None)
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.integer_property = 21
@@ -510,7 +574,9 @@ class TestTemplateNumericProperty:
     @staticmethod
     def test_exclusive_minimum(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(2.0, 13.5, -50)
+            module.TestDefinition(
+                required_number_property=2.0, number_property=13.5,
+                required_integer_property=-50)
 
         message = err_info.value.message
         assert message == ("Invalid value for 'required_number_property',"
@@ -518,7 +584,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_exclusive_minimum_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.required_number_property = 2.0
@@ -530,7 +598,7 @@ class TestTemplateNumericProperty:
     @staticmethod
     def test_exclusive_maximum(module):
         with pytest.raises(module.GeneratedClassesError) as err_info:
-            module.TestDefinition(200.5, 13.5, 100)
+            module.TestDefinition(200.5, 13.5, required_integer_property=100)
 
         message = err_info.value.message
         assert message == ("Invalid value for 'required_integer_property',"
@@ -538,7 +606,9 @@ class TestTemplateNumericProperty:
 
     @staticmethod
     def test_exclusive_maximum_setter(module):
-        test_object = module.TestDefinition(200.5, None, -50)
+        test_object = module.TestDefinition(
+            required_number_property=200.5, number_property=None,
+            required_integer_property=-50)
 
         with pytest.raises(module.GeneratedClassesError) as err_info:
             test_object.required_integer_property = 100
@@ -697,9 +767,14 @@ class TestTemplateObjectProperty:
             module.TestDefinition(required_object_property='not an object')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'str' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'str' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'str' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_object_is_string_setter(module):
@@ -710,9 +785,14 @@ class TestTemplateObjectProperty:
             test_object.required_object_property = 'not an object'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'str' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'str' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'str' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_object_is_array(module):
@@ -721,9 +801,14 @@ class TestTemplateObjectProperty:
                 required_object_property=['this', 'is', 'a', 'list'])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'list' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'list' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'list' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_object_is_array_setter(module):
@@ -734,9 +819,14 @@ class TestTemplateObjectProperty:
             test_object.required_object_property = ['this', 'is', 'a', 'list']
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'list' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'list' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'list' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_object_dict_with_bad_key_type(module):
@@ -747,10 +837,16 @@ class TestTemplateObjectProperty:
                 True: 't'
             })
 
-        expected_msg_template = (
-            "TestDefinition's parameter 'required_object_property' was a dict"
-            " with keys of {{{}}} but should be"
-            " of a dict with keys type 'basestring'.")
+        if six.PY2:
+            expected_msg_template = (
+                "TestDefinition's parameter 'required_object_property' was a dict"
+                " with keys of {{{}}} but should be"
+                " of a dict with keys type 'basestring'.")
+        else:
+            expected_msg_template = (
+                "TestDefinition's parameter 'required_object_property' was a dict"
+                " with keys of {{{}}} but should be"
+                " of a dict with keys type 'str'.")
         possible_messages = create_possible_expected_messages(
             expected_msg_template, [str, int, bool])
 
@@ -773,10 +869,17 @@ class TestTemplateObjectProperty:
                 True: 't'
             }
 
-        expected_msg_template = (
-            "TestDefinition's parameter 'required_object_property' was a dict"
-            " with keys of {{{}}} but should be"
-            " of a dict with keys type 'basestring'.")
+        if six.PY2:
+            expected_msg_template = (
+                "TestDefinition's parameter 'required_object_property' was a dict"
+                " with keys of {{{}}} but should be"
+                " of a dict with keys type 'basestring'.")
+        else:
+            expected_msg_template = (
+                "TestDefinition's parameter 'required_object_property' was a dict"
+                " with keys of {{{}}} but should be"
+                " of a dict with keys type 'str'.")
+
         possible_messages = create_possible_expected_messages(
             expected_msg_template, [str, int, bool])
 
@@ -794,10 +897,16 @@ class TestTemplateObjectProperty:
                                   boolean_dict_property={'key': 'value'})
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'boolean_dict_property' was a"
-            " dict of {type 'str':type 'str'} but should be of type 'dict of"
-            " basestring:bool' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'boolean_dict_property' was a"
+                " dict of {type 'str':type 'str'} but should be of type 'dict of"
+                " basestring:bool' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'boolean_dict_property' was a"
+                " dict of {class 'str':class 'str'} but should be of type 'dict of"
+                " str:bool' if defined.")
 
     @staticmethod
     def test_semi_defined_dict_not_bool_value_type_setter(module):
@@ -808,10 +917,16 @@ class TestTemplateObjectProperty:
             test_object.boolean_dict_property = {'key': 'value'}
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'boolean_dict_property' was a"
-            " dict of {type 'str':type 'str'} but should be of type 'dict of"
-            " basestring:bool' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'boolean_dict_property' was a"
+                " dict of {type 'str':type 'str'} but should be of type 'dict of"
+                " basestring:bool' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'boolean_dict_property' was a"
+                " dict of {class 'str':class 'str'} but should be of type 'dict of"
+                " str:bool' if defined.")
 
     @staticmethod
     def test_semi_defined_dict_not_number_value_type(module):
@@ -820,10 +935,16 @@ class TestTemplateObjectProperty:
                                   number_dict_property={'key': 'value'})
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'number_dict_property' was a"
-            " dict of {type 'str':type 'str'} but should be of type 'dict of"
-            " basestring:float' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'number_dict_property' was a"
+                " dict of {type 'str':type 'str'} but should be of type 'dict of"
+                " basestring:float' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'number_dict_property' was a"
+                " dict of {class 'str':class 'str'} but should be of type 'dict of"
+                " str:float' if defined.")
 
     @staticmethod
     def test_semi_defined_dict_not_number_value_type_setter(module):
@@ -834,10 +955,11 @@ class TestTemplateObjectProperty:
             test_object.number_dict_property = {'key': 'value'}
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'number_dict_property' was a"
-            " dict of {type 'str':type 'str'} but should be of type 'dict of"
-            " basestring:float' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'number_dict_property' was a"
+                " dict of {type 'str':type 'str'} but should be of type 'dict of"
+                " basestring:float' if defined.")
 
     @staticmethod
     def test_internal_class_is_string(module):
@@ -846,11 +968,18 @@ class TestTemplateObjectProperty:
                                   defined_object_property='string')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'defined_object_property' was type"
-            " 'str' but should be of class"
-            " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
-                module.TestDefinitionDefinedObjectProperty.__module__))
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was type"
+                " 'str' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
+        else:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was class"
+                " 'str' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
 
     @staticmethod
     def test_internal_class_is_string_setter(module):
@@ -861,11 +990,18 @@ class TestTemplateObjectProperty:
             test_object.defined_object_property = 'string'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'defined_object_property' was type"
-            " 'str' but should be of class"
-            " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
-                module.TestDefinitionDefinedObjectProperty.__module__))
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was type"
+                " 'str' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
+        else:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was class"
+                " 'str' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
 
     @staticmethod
     def test_internal_class_is_other_class(module):
@@ -877,11 +1013,20 @@ class TestTemplateObjectProperty:
                                   defined_object_property=TestOtherClass())
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'defined_object_property' was type"
-            " 'instance' but should be of class"
-            " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
-                module.TestDefinitionDefinedObjectProperty.__module__))
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was type"
+                " 'instance' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
+        else:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was class"
+                " 'dlpx.virtualization._internal.commands.test_templates"
+                ".TestTemplateObjectProperty.test_internal_class_is_other_class"
+                ".locals.TestOtherClass' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
 
     @staticmethod
     def test_internal_class_is_other_class_setter(module):
@@ -895,11 +1040,21 @@ class TestTemplateObjectProperty:
             test_object.defined_object_property = TestOtherClass()
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'defined_object_property' was type"
-            " 'instance' but should be of class"
-            " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
-                module.TestDefinitionDefinedObjectProperty.__module__))
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was type"
+                " 'instance' but should be of class"
+                " '{}.TestDefinitionDefinedObjectProperty' if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
+        else:
+            assert message == (
+                "TestDefinition's parameter 'defined_object_property' was class"
+                " 'dlpx.virtualization._internal.commands.test_templates"
+                ".TestTemplateObjectProperty"
+                ".test_internal_class_is_other_class_setter.locals.TestOtherClass' "
+                "but should be of class '{}.TestDefinitionDefinedObjectProperty' "
+                "if defined.".format(
+                    module.TestDefinitionDefinedObjectProperty.__module__))
 
 
 class TestTemplateArrayProperty:
@@ -998,9 +1153,14 @@ class TestTemplateArrayProperty:
             module.TestDefinition(required_array_property='not an array')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was type"
-            " 'str' but should be of type 'list of float'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was type"
+                " 'str' but should be of type 'list of float'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was class"
+                " 'str' but should be of type 'list of float'.")
 
     @staticmethod
     def test_array_is_string_setter(module):
@@ -1010,9 +1170,14 @@ class TestTemplateArrayProperty:
             test_object.required_array_property = 'not an object'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was type"
-            " 'str' but should be of type 'list of float'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was type"
+                " 'str' but should be of type 'list of float'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was class"
+                " 'str' but should be of type 'list of float'.")
 
     @staticmethod
     def test_array_is_object(module):
@@ -1024,9 +1189,14 @@ class TestTemplateArrayProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'array_property' was type"
-            " 'dict' but should be of type 'list' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was type"
+                " 'dict' but should be of type 'list' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was class"
+                " 'dict' but should be of class 'list' if defined.")
 
     @staticmethod
     def test_array_is_object_setter(module):
@@ -1036,9 +1206,14 @@ class TestTemplateArrayProperty:
             test_object.array_property = {'this': 'is', 'a': 'dict'}
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'array_property' was type"
-            " 'dict' but should be of type 'list' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was type"
+                " 'dict' but should be of type 'list' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was class"
+                " 'dict' but should be of class 'list' if defined.")
 
     @staticmethod
     def test_number_array_wrong_elem_types(module):
@@ -1046,10 +1221,16 @@ class TestTemplateArrayProperty:
             module.TestDefinition(required_array_property=['one', True])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was a list"
-            " of [type 'str', type 'bool'] but should be of type 'list of"
-            " float'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was a list"
+                " of [type 'str', type 'bool'] but should be of type 'list of"
+                " float'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was a list"
+                " of [class 'str', class 'bool'] but should be of type 'list of"
+                " float'.")
 
     @staticmethod
     def test_number_array_wrong_elem_types_setter(module):
@@ -1059,10 +1240,16 @@ class TestTemplateArrayProperty:
             test_object.required_array_property = ['one', True]
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was a list"
-            " of [type 'str', type 'bool'] but should be of type 'list of"
-            " float'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was a list"
+                " of [type 'str', type 'bool'] but should be of type 'list of"
+                " float'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was a list"
+                " of [class 'str', class 'bool'] but should be of type 'list of"
+                " float'.")
 
     @staticmethod
     def test_string_array_wrong_elem_types(module):
@@ -1071,10 +1258,16 @@ class TestTemplateArrayProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_array_property' was a list of"
-            " [type 'str', type 'int', type 'float'] but should be of type"
-            " 'list of basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_array_property' was a list of"
+                " [type 'str', type 'int', type 'float'] but should be of type"
+                " 'list of basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_array_property' was a list of"
+                " [class 'str', class 'int', class 'float'] but should be of type"
+                " 'list of str' if defined.")
 
     @staticmethod
     def test_string_array_wrong_elem_types_setter(module):
@@ -1084,10 +1277,16 @@ class TestTemplateArrayProperty:
             test_object.string_array_property = ['one', 2, 3.0]
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_array_property' was a list of"
-            " [type 'str', type 'int', type 'float'] but should be of type"
-            " 'list of basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_array_property' was a list of"
+                " [type 'str', type 'int', type 'float'] but should be of type"
+                " 'list of basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_array_property' was a list of"
+                " [class 'str', class 'int', class 'float'] but should be of type"
+                " 'list of str' if defined.")
 
 
 class TestTemplateBooleanProperty:
@@ -1170,9 +1369,14 @@ class TestTemplateBooleanProperty:
             module.TestDefinition(required_boolean_property='not an array')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_boolean_property' was type"
-            " 'str' but should be of type 'bool'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_boolean_property' was type"
+                " 'str' but should be of type 'bool'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_boolean_property' was class"
+                " 'str' but should be of class 'bool'.")
 
     @staticmethod
     def test_boolean_is_string_setter(module):
@@ -1182,9 +1386,14 @@ class TestTemplateBooleanProperty:
             test_object.required_boolean_property = 'not an object'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_boolean_property' was type"
-            " 'str' but should be of type 'bool'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_boolean_property' was type"
+                " 'str' but should be of type 'bool'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_boolean_property' was class"
+                " 'str' but should be of class 'bool'.")
 
 
 class TestTemplateEnumProperty:
@@ -1333,9 +1542,14 @@ class TestTemplateEnumProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_string_property' was type"
-            " 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_string_property' was type"
+                " 'int' but should be of type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_string_property' was class"
+                " 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_required_string_not_string_setter(module):
@@ -1347,9 +1561,14 @@ class TestTemplateEnumProperty:
             test_object.required_string_property = 1000
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_string_property' was type"
-            " 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_string_property' was type"
+                " 'int' but should be of type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_string_property' was class"
+                " 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_string_incorrect_enum(module):
@@ -1386,9 +1605,14 @@ class TestTemplateEnumProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_property' was type 'int' but"
-            " should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was type 'int' but"
+                " should be of type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was class 'int' but"
+                " should be of class 'str' if defined.")
 
     @staticmethod
     def test_string_not_string_setter(module):
@@ -1400,9 +1624,14 @@ class TestTemplateEnumProperty:
             test_object.string_property = 1000
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'string_property' was type 'int' but"
-            " should be of type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was type 'int' but"
+                " should be of type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'string_property' was class 'int' but"
+                " should be of class 'str' if defined.")
 
     @staticmethod
     def test_required_object_incorrect_enum(module):
@@ -1438,9 +1667,14 @@ class TestTemplateEnumProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'str' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'str' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'str' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_required_object_not_object_setter(module):
@@ -1452,9 +1686,14 @@ class TestTemplateEnumProperty:
             test_object.required_object_property = 'FOUR'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_object_property' was type"
-            " 'str' but should be of a dict with keys type 'basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was type"
+                " 'str' but should be of a dict with keys type 'basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_object_property' was class"
+                " 'str' but should be of a dict with keys type 'str'.")
 
     @staticmethod
     def test_object_incorrect_enum(module):
@@ -1492,9 +1731,14 @@ class TestTemplateEnumProperty:
                                   required_array_property=[])
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'object_property' was type 'str' but"
-            " should be of a dict with keys type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'object_property' was type 'str' but"
+                " should be of a dict with keys type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'object_property' was class 'str' but"
+                " should be of a dict with keys type 'str' if defined.")
 
     @staticmethod
     def test_object_not_object_setter(module):
@@ -1506,9 +1750,14 @@ class TestTemplateEnumProperty:
             test_object.object_property = 'THREE'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'object_property' was type 'str' but"
-            " should be of a dict with keys type 'basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'object_property' was type 'str' but"
+                " should be of a dict with keys type 'basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'object_property' was class 'str' but"
+                " should be of a dict with keys type 'str' if defined.")
 
     @staticmethod
     def test_required_array_incorrect_enum(module):
@@ -1518,9 +1767,12 @@ class TestTemplateEnumProperty:
                                   required_array_property=['FA', 'SO'])
 
         message = err_info.value.message
-        assert message == (
-            "Invalid values for 'required_array_property'. Was [FA, SO]"
-            " but must be a subset of [DO, RE, MI].")
+        # In Py3, the "FA" and "SO" are not always listed in the same order. Use a
+        # regex to check test success regardless of this ordering.
+        pattern = re.compile(
+            "Invalid values for 'required_array_property'. Was \\[(FA, SO|SO, FA)\\] but must be "
+            "a subset of \\[DO, RE, MI\\].")
+        assert re.match(pattern, message) is not None
 
     @staticmethod
     def test_required_array_incorrect_enum_setter(module):
@@ -1532,9 +1784,10 @@ class TestTemplateEnumProperty:
             test_object.required_array_property = ['FA', 'SO']
 
         message = err_info.value.message
-        assert message == (
-            "Invalid values for 'required_array_property'. Was [FA, SO]"
-            " but must be a subset of [DO, RE, MI].")
+        pattern = re.compile(
+            "Invalid values for 'required_array_property'. Was \\[(FA, SO|SO, FA)\\] but must be "
+            "a subset of \\[DO, RE, MI\\].")
+        assert re.match(pattern, message) is not None
 
     @staticmethod
     def test_required_array_not_array(module):
@@ -1544,9 +1797,14 @@ class TestTemplateEnumProperty:
                                   required_array_property='MI')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was type"
-            " 'str' but should be of type 'list of basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was type"
+                " 'str' but should be of type 'list of basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was class"
+                " 'str' but should be of type 'list of str'.")
 
     @staticmethod
     def test_required_array_not_array_setter(module):
@@ -1558,9 +1816,14 @@ class TestTemplateEnumProperty:
             test_object.required_array_property = 'MI'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'required_array_property' was type"
-            " 'str' but should be of type 'list of basestring'.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was type"
+                " 'str' but should be of type 'list of basestring'.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'required_array_property' was class"
+                " 'str' but should be of type 'list of str'.")
 
     @staticmethod
     def test_array_incorrect_enum(module):
@@ -1571,8 +1834,10 @@ class TestTemplateEnumProperty:
                                   array_property=['FA', 'SO'])
 
         message = err_info.value.message
-        assert message == ("Invalid values for 'array_property'. Was [FA, SO]"
-                           " but must be a subset of [DO, RE, MI] if defined.")
+        pattern = re.compile(
+            "Invalid values for 'array_property'. Was \\[(FA, SO|SO, FA)\\] but must be "
+            "a subset of \\[DO, RE, MI\\] if defined.")
+        assert re.match(pattern, message) is not None
 
     @staticmethod
     def test_array_incorrect_enum_setter(module):
@@ -1584,8 +1849,11 @@ class TestTemplateEnumProperty:
             test_object.array_property = ['FA', 'SO']
 
         message = err_info.value.message
-        assert message == ("Invalid values for 'array_property'. Was [FA, SO]"
-                           " but must be a subset of [DO, RE, MI] if defined.")
+        pattern = re.compile(
+            "Invalid values for 'array_property'. Was \\[(FA, SO|SO, FA)\\] but must be "
+            "a subset of \\[DO, RE, MI\\] if defined.")
+
+        assert re.match(pattern, message) is not None
 
     @staticmethod
     def test_array_not_array(module):
@@ -1596,9 +1864,14 @@ class TestTemplateEnumProperty:
                                   array_property='MI')
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'array_property' was type 'str' but"
-            " should be of type 'list of basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was type 'str' but"
+                " should be of type 'list of basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was class 'str' but"
+                " should be of type 'list of str' if defined.")
 
     @staticmethod
     def test_array_not_array_setter(module):
@@ -1610,6 +1883,11 @@ class TestTemplateEnumProperty:
             test_object.array_property = 'MI'
 
         message = err_info.value.message
-        assert message == (
-            "TestDefinition's parameter 'array_property' was type 'str' but"
-            " should be of type 'list of basestring' if defined.")
+        if six.PY2:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was type 'str' but"
+                " should be of type 'list of basestring' if defined.")
+        else:
+            assert message == (
+                "TestDefinition's parameter 'array_property' was class 'str' but"
+                " should be of type 'list of str' if defined.")

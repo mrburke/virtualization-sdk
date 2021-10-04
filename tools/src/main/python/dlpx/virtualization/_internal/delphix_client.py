@@ -4,11 +4,13 @@
 
 import json
 import logging
+import six
 import threading
 import time
 
 import requests
 from dlpx.virtualization._internal import exceptions, plugin_util
+from dlpx.virtualization.common.util import to_bytes, to_str
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +95,8 @@ class DelphixClient(object):
         # Issue post request that was passed in, if data is a dict then convert
         # it to a json string.
         #
-        if data is not None and not isinstance(data, (str, bytes, unicode)):
+        if data is not None and not isinstance(data, (six.text_type, six.binary_type)):
+            data = to_str(data)
             data = json.dumps(data)
         try:
             response = requests.post(url=url, data=data, headers=headers)
@@ -222,7 +225,9 @@ class DelphixClient(object):
         # Get the upload token.
         logger.debug('Getting token to do upload.')
         response = self.__post('delphix/toolkit/requestUploadToken')
+        print(response)
         token = response['result']['token']
+        print(token)
         logger.debug('Got token {!r} successfully.'.format(token))
 
         logger.info('Uploading plugin {!r}.'.format(name))
@@ -306,7 +311,7 @@ class DelphixClient(object):
         }
         response = self.__post('delphix/service/support/bundle/generate',
                                data=data)
-        token = response['result'].encode('utf-8').strip()
+        token = to_str(response['result'].encode('utf-8').strip())
         logger.debug('Got token {!r} successfully.'.format(token))
 
         self.__download_logs(plugin_name, token, directory)

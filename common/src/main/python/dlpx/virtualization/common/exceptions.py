@@ -112,8 +112,8 @@ class PluginRuntimeError(Exception):
                 raise PlatformError('The thrown TypeError should have had a'
                                     ' dict of size 1 as the expected_type')
 
-            key_type = expected_type.keys()[0]
-            value_type = expected_type.values()[0]
+            key_type = list(expected_type.keys())[0]
+            value_type = list(expected_type.values())[0]
 
             key_type_name = _get_type_name(key_type)
             value_type_name = _get_type_name(value_type)

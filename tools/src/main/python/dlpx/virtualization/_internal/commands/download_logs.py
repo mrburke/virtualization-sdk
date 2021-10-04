@@ -5,6 +5,7 @@
 import logging
 
 from dlpx.virtualization._internal import delphix_client, package_util
+from dlpx.virtualization.common.util import to_bytes, to_str
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,12 @@ def download_logs(engine, plugin_config, user, password, directory):
                                          directory))
     logger.info('Downloading plugin logs from {} to: {}'.format(
         engine, directory))
+
+    engine = to_str(engine)
+    plugin_config = to_str(plugin_config)
+    user = to_str(user)
+    password = to_str(password)
+    directory = to_str(directory)
 
     # Create a new delphix session.
     client = delphix_client.DelphixClient(engine)

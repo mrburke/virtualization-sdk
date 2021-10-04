@@ -2,6 +2,7 @@
 # Copyright (c) 2019 by Delphix. All rights reserved.
 #
 import dlpx.virtualization.api
+from dlpx.virtualization.common.util import to_str
 
 
 def get_virtualization_api_version():

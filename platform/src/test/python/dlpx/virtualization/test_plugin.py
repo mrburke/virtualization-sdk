@@ -5,6 +5,7 @@
 import json
 
 import pytest
+import six
 from dlpx.virtualization.api import common_pb2, platform_pb2
 from dlpx.virtualization.common import (RemoteConnection, RemoteEnvironment,
                                         RemoteHost, RemoteUser)
@@ -13,8 +14,8 @@ from dlpx.virtualization.platform.exceptions import (
     OperationAlreadyDefinedError, PluginRuntimeError)
 from mock import MagicMock, patch
 
-import fake_generated_definitions
-from fake_generated_definitions import (RepositoryDefinition,
+from . import fake_generated_definitions
+from .fake_generated_definitions import (RepositoryDefinition,
                                         SnapshotDefinition,
                                         SourceConfigDefinition)
 
@@ -61,11 +62,20 @@ TEST_POST_MIGRATION_METADATA_2 = (json.dumps({
         'metadata': 'metadata'
     }
 }))
-TEST_POST_UPGRADE_PARAMS = ({
-    u'obj':
-    '"{\\"obj\\": {\\"prettyName\\": \\"prettyUpgrade\\", '
-    '\\"name\\": \\"upgrade\\", \\"metadata\\": \\"metadata\\"}}"'
-})
+
+if six.PY2:
+    TEST_POST_UPGRADE_PARAMS = ({
+        u'obj':
+        '"{\\"obj\\": {\\"prettyName\\": \\"prettyUpgrade\\", '
+        '\\"name\\": \\"upgrade\\", \\"metadata\\": \\"metadata\\"}}"'
+    })
+else:
+    TEST_POST_UPGRADE_PARAMS = ({
+        u'obj':
+        '"{\\"obj\\": {\\"name\\": \\"upgrade\\", '
+        '\\"prettyName\\": \\"prettyUpgrade\\", \\"metadata\\": \\"metadata\\"}}"'
+    })
+
 MIGRATION_IDS = ('2020.1.1', '2020.2.2')
 
 
@@ -467,10 +477,16 @@ class TestPlugin:
             my_plugin.virtual._internal_configure(configure_request)
 
         message = err_info.value.message
-        assert message == (
-            "The returned object for the virtual.configure() operation was"
-            " type 'unicode' but should be of class 'dlpx.virtualization."
-            "fake_generated_definitions.SourceConfigDefinition'.")
+        if six.PY2:
+            assert message == (
+                "The returned object for the virtual.configure() operation was"
+                " type 'unicode' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
+        else:
+            assert message == (
+                "The returned object for the virtual.configure() operation was"
+                " class 'str' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
 
     @staticmethod
     def test_virtual_unconfigure(my_plugin, virtual_source, repository,
@@ -553,10 +569,16 @@ class TestPlugin:
             my_plugin.virtual._internal_reconfigure(reconfigure_request)
 
         message = err_info.value.message
-        assert message == (
-            "The returned object for the virtual.reconfigure() operation was"
-            " type 'unicode' but should be of class 'dlpx.virtualization."
-            "fake_generated_definitions.SourceConfigDefinition'.")
+        if six.PY2:
+            assert message == (
+                "The returned object for the virtual.reconfigure() operation was"
+                " type 'unicode' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
+        else:
+            assert message == (
+                "The returned object for the virtual.reconfigure() operation was"
+                " class 'str' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
 
     @staticmethod
     def test_virtual_start(my_plugin, virtual_source, repository,
@@ -722,10 +744,16 @@ class TestPlugin:
         with pytest.raises(IncorrectReturnTypeError) as err_info:
             my_plugin.virtual._internal_initialize(initialize_request)
         message = err_info.value.message
-        assert message == (
-            "The returned object for the virtual.initialize() operation was"
-            " type 'NoneType' but should be of class 'dlpx.virtualization."
-            "fake_generated_definitions.SourceConfigDefinition'.")
+        if six.PY2:
+            assert message == (
+                "The returned object for the virtual.initialize() operation was"
+                " type 'NoneType' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
+        else:
+            assert message == (
+                "The returned object for the virtual.initialize() operation was"
+                " class 'NoneType' but should be of class 'dlpx.virtualization."
+                "fake_generated_definitions.SourceConfigDefinition'.")
 
     @staticmethod
     def test_virtual_mount_spec(my_plugin, virtual_source, repository):
@@ -802,12 +830,20 @@ class TestPlugin:
                 repository_discovery_request)
 
         message = err_info.value.message
-        assert message == (
-            "The returned object for the discovery.repository() operation was"
-            " a list of [type 'str', class 'dlpx.virtualization"
-            ".fake_generated_definitions.RepositoryDefinition'] but should"
-            " be of type 'list of dlpx.virtualization"
-            ".fake_generated_definitions.RepositoryDefinition'.")
+        if six.PY2:
+            assert message == (
+                "The returned object for the discovery.repository() operation was"
+                " a list of [type 'str', class 'dlpx.virtualization"
+                ".fake_generated_definitions.RepositoryDefinition'] but should"
+                " be of type 'list of dlpx.virtualization"
+                ".fake_generated_definitions.RepositoryDefinition'.")
+        else:
+            assert message == (
+                "The returned object for the discovery.repository() operation was"
+                " a list of [class 'str', class 'dlpx.virtualization"
+                ".fake_generated_definitions.RepositoryDefinition'] but should"
+                " be of type 'list of dlpx.virtualization"
+                ".fake_generated_definitions.RepositoryDefinition'.")
 
     @staticmethod
     def test_source_config_discovery(my_plugin, connection, repository):
@@ -1347,7 +1383,7 @@ class TestPlugin:
         expected_response.return_value.post_upgrade_parameters \
             .update(TEST_POST_UPGRADE_PARAMS)
 
-        assert expected_response == upgrade_response
+        assert str(expected_response).replace("\n", "") == str(upgrade_response).replace("\n", "")
 
     @staticmethod
     def test_upgrade_repository_incorrect_upgrade_object_type(my_plugin):

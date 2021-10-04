@@ -160,8 +160,8 @@ class Mount(object):
         plugin writer from attempting to provide parameter values that they
         won't have access to."""
         def __is_correct_reference_format(reference):
-            unix_format = re.compile("^UNIX_HOST_ENVIRONMENT-\d+$")
-            win_format = re.compile("^WINDOWS_HOST_ENVIRONMENT-\d+$")
+            unix_format = re.compile(r"^UNIX_HOST_ENVIRONMENT-\d+$")
+            win_format = re.compile(r"^WINDOWS_HOST_ENVIRONMENT-\d+$")
             return (bool(unix_format.match(reference))
                     or bool(win_format.match(reference)))
 

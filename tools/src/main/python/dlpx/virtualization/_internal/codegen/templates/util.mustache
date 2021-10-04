@@ -33,9 +33,9 @@ def get_contained_type(type_string):
     for pattern in patterns:
         match = re.search(pattern, type_string)
         if match and match.group(1) != 'ERRORUNKNOWN':
-            # Convert the type to basestring here.
+            # Convert the type to string here.
             if match.group(1) == 'str':
-                return basestring
+                return six.string_types[0]
             return pydoc.locate(match.group(1))
     return None
 
@@ -73,7 +73,10 @@ def _deserialize(data, klass):
     if data is None:
         return None
 
-    if issubclass(klass, (int, float, long, complex, basestring, bool)):
+    primitive_types = {float, complex, bool}
+    primitive_types.update(set(six.integer_types))
+    primitive_types.update(set(six.string_types))
+    if issubclass(klass, tuple(primitive_types)):
         return _deserialize_primitive(data, klass)
     elif klass == datetime.date:
         return deserialize_date(data)
@@ -93,21 +96,22 @@ def _deserialize_primitive(data, klass):
     :param data: data to deserialize.
     :param klass: class literal.
 
-    :return: int, float, long, complex, basestring, bool.
-    :rtype: int | float | long | complex | basestring | bool
+    :return: int, float, long, complex, str, bool.
+    :rtype: int | float | long | complex | str | bool
     """
     try:
         value = klass(data)
     except UnicodeEncodeError:
-        if isinstance(data, str):
+        _bytes = bytes if six.PY3 else str
+        if isinstance(data, _bytes):
             #
             # Ignore errors even if the string is not proper UTF-8 or has
-            # broken marker bytes. The builtin  unicode function can do this.
+            # broken marker bytes. The builtin unicode function can do this.
             #
-            value = unicode(data, 'utf-8', errors='ignore')
+            value = six.text_type(data, "utf-8", errors='ignore')
         else:
             # Assume the value object has proper __unicode__() method.
-            value = unicode(data)
+            value = six.text_type(data)
     except TypeError:
         value = data
     return value

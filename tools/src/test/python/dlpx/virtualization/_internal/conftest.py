@@ -7,6 +7,7 @@ import copy
 import json
 import os
 
+from six.moves import reload_module
 import yaml
 from dlpx.virtualization._internal import cli, click_util, const, package_util
 from dlpx.virtualization._internal.commands import build
@@ -113,7 +114,7 @@ def _write_dvp_config_file(tmpdir,
     if dev_config_properties:
         parser['dev'] = dev_config_properties
 
-    with open(dvp_config_filepath, 'wb') as config_file:
+    with open(dvp_config_filepath, 'w') as config_file:
         parser.write(config_file)
 
     #
@@ -130,7 +131,7 @@ def _write_dvp_config_file(tmpdir,
     cli.CONTEXT_SETTINGS['obj'] = {}
     cli.CONTEXT_SETTINGS['obj'] = click_util.ConfigFileProcessor.read_config()
 
-    reload(cli)
+    reload_module(cli)
 
 
 @pytest.fixture
@@ -249,7 +250,7 @@ def external_version():
 
 @pytest.fixture
 def language():
-    return 'PYTHON27'
+    return 'PYTHON38'
 
 
 @pytest.fixture
@@ -642,7 +643,7 @@ def artifact_content(engine_api, virtual_source_definition,
         'name': 'python_vfiles',
         'externalVersion': '2.0.0',
         'defaultLocale': 'en-us',
-        'language': 'PYTHON27',
+        'language': 'PYTHON38',
         'hostTypes': ['UNIX'],
         'entryPoint': 'python_vfiles:vfiles',
         'buildApi': package_util.get_build_api_version(),

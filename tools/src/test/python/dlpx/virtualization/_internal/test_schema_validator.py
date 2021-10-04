@@ -6,6 +6,7 @@ import json
 import os
 
 import pytest
+import six
 from dlpx.virtualization._internal import const, exceptions, plugin_util
 from dlpx.virtualization._internal.schema_validator import SchemaValidator
 
@@ -21,9 +22,14 @@ class TestSchemaValidator:
             validator.validate()
 
         message = err_info.value.message
-        assert ("Failed to load schemas because '{}' is not a valid json file."
-                " Error: Extra data: line 2 column 1 - line 2 column 9"
-                " (char 19 - 27)".format(schema_file)) in message
+        if six.PY2:
+            assert ("Failed to load schemas because '{}' is not a valid json file."
+                    " Error: Extra data: line 2 column 1 - line 2 column 9"
+                    " (char 19 - 27)".format(schema_file)) in message
+        else:
+            assert ("Failed to load schemas because '{}' is not a valid json file."
+                    " Error: Extra data: line 2 column 1 (char 19)"
+                    .format(schema_file)) in message
 
     @staticmethod
     def test_bad_schema_file(schema_file):

@@ -3,8 +3,9 @@
 #
 
 import pytest
+import six
 from dlpx.virtualization.api import common_pb2
-from dlpx.virtualization.common._common_classes import (RemoteConnection, RemoteEnvironment, RemoteHost, RemoteUser)
+from dlpx.virtualization.common._common_classes import (RemoteConnection, RemoteEnvironment, RemoteHost, RemoteUser, Credentials, KeyPairCredentials, PasswordCredentials)
 from dlpx.virtualization.common.exceptions import IncorrectTypeError
 
 @pytest.fixture
@@ -31,19 +32,31 @@ class TestRemoteConnection:
     def test_init_remote_connection_incorrect_environment(remote_user):
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteConnection('', remote_user)
-        assert err_info.value.message == (
-            "RemoteConnection's parameter 'environment' was"
-            " type 'str' but should be of class 'dlpx.virtualization"
-            ".common._common_classes.RemoteEnvironment'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'environment' was"
+                " type 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteEnvironment'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'environment' was"
+                " class 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteEnvironment'.")
 
     @staticmethod
     def test_init_remote_connection_incorrect_user(remote_environment):
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteConnection(remote_environment, '')
-        assert err_info.value.message == (
-            "RemoteConnection's parameter 'user' was"
-            " type 'str' but should be of class 'dlpx.virtualization"
-            ".common._common_classes.RemoteUser'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'user' was"
+                " type 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteUser'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'user' was"
+                " class 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteUser'.")
 
     @staticmethod
     def test_remote_connection_to_proto(remote_user, remote_environment):
@@ -61,10 +74,16 @@ class TestRemoteConnection:
     def test_remote_connection_from_proto_fail():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteConnection.from_proto('')
-        assert err_info.value.message == (
-            "RemoteConnection's parameter 'connection' was"
-            " type 'str' but should be of class 'dlpx.virtualization.api"
-            ".common_pb2.RemoteConnection'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'connection' was"
+                " type 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteConnection'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteConnection's parameter 'connection' was"
+                " class 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteConnection'.")
 
 
 class TestRemoteEnvironment:
@@ -76,26 +95,42 @@ class TestRemoteEnvironment:
     def test_init_remote_environment_incorrect_name(remote_host):
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteEnvironment(1, '', remote_host)
-        assert err_info.value.message == (
-            "RemoteEnvironment's parameter 'name' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'name' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'name' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_environment_incorrect_reference(remote_host):
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteEnvironment('', 1, remote_host)
-        assert err_info.value.message == (
-            "RemoteEnvironment's parameter 'reference' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'reference' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'reference' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_environment_incorrect_host():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteEnvironment('', '', '')
-        assert err_info.value.message == (
-            "RemoteEnvironment's parameter 'host' was"
-            " type 'str' but should be of class 'dlpx.virtualization"
-            ".common._common_classes.RemoteHost'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'host' was"
+                " type 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteHost'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'host' was"
+                " class 'str' but should be of class 'dlpx.virtualization"
+                ".common._common_classes.RemoteHost'.")
 
     @staticmethod
     def test_remote_environment_to_proto(remote_host):
@@ -113,10 +148,16 @@ class TestRemoteEnvironment:
     def test_remote_environment_from_proto_fail():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteEnvironment.from_proto('')
-        assert err_info.value.message == (
-            "RemoteEnvironment's parameter 'environment' was"
-            " type 'str' but should be of class 'dlpx.virtualization.api"
-            ".common_pb2.RemoteEnvironment'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'environment' was"
+                " type 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteEnvironment'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteEnvironment's parameter 'environment' was"
+                " class 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteEnvironment'.")
 
 
 class TestRemoteHost:
@@ -131,33 +172,53 @@ class TestRemoteHost:
     def test_init_remote_host_incorrect_name():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteHost(1, '', '', '')
-        assert err_info.value.message == (
-            "RemoteHost's parameter 'name' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'name' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'name' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_host_incorrect_reference():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteHost('', 1, '', '')
-        assert err_info.value.message == (
-            "RemoteHost's parameter 'reference' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'reference' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'reference' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_host_incorrect_binary_path():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteHost('', '', 1, '')
-        assert err_info.value.message == (
-            "RemoteHost's parameter 'binary_path' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'binary_path' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'binary_path' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_host_incorrect_scratch_path():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteHost('', '', '', 1)
-        assert err_info.value.message == (
-            "RemoteHost's parameter 'scratch_path' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'scratch_path' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'scratch_path' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_remote_host_to_proto_non_default():
@@ -175,10 +236,16 @@ class TestRemoteHost:
     def test_remote_host_from_proto_fail():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteHost.from_proto('')
-        assert err_info.value.message == (
-            "RemoteHost's parameter 'host' was"
-            " type 'str' but should be of class 'dlpx.virtualization.api"
-            ".common_pb2.RemoteHost'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'host' was"
+                " type 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteHost'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteHost's parameter 'host' was"
+                " class 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteHost'.")
 
 
 class TestRemoteUser:
@@ -190,17 +257,27 @@ class TestRemoteUser:
     def test_init_remote_user_incorrect_name():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteUser(1, '')
-        assert err_info.value.message == (
-            "RemoteUser's parameter 'name' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'name' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'name' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_init_remote_user_incorrect_reference():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteUser('', 1)
-        assert err_info.value.message == (
-            "RemoteUser's parameter 'reference' was"
-            " type 'int' but should be of type 'basestring'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'reference' was"
+                " type 'int' but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'reference' was"
+                " class 'int' but should be of class 'str'.")
 
     @staticmethod
     def test_remote_user_to_proto_non_default():
@@ -218,7 +295,73 @@ class TestRemoteUser:
     def test_remote_user_from_proto_fail():
         with pytest.raises(IncorrectTypeError) as err_info:
             RemoteUser.from_proto('')
-        assert err_info.value.message == (
-            "RemoteUser's parameter 'user' was"
-            " type 'str' but should be of class 'dlpx.virtualization.api"
-            ".common_pb2.RemoteUser'.")
+        if six.PY2:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'user' was"
+                " type 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteUser'.")
+        else:
+            assert err_info.value.message == (
+                "RemoteUser's parameter 'user' was"
+                " class 'str' but should be of class 'dlpx.virtualization.api"
+                ".common_pb2.RemoteUser'.")
+
+
+class TestCredentials:
+    @staticmethod
+    def test_init_credentials_incorrect_username_type():
+        with pytest.raises(IncorrectTypeError) as err_info:
+            KeyPairCredentials(RemoteUser("user1", "reference1"), "1234", "5678")
+        if six.PY2:
+            assert err_info.value.message == (
+                "Credentials's parameter 'username' was class "
+                "'dlpx.virtualization.common._common_classes.RemoteUser' but should be "
+                "of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "Credentials's parameter 'username' was class "
+                "'dlpx.virtualization.common._common_classes.RemoteUser' but should be "
+                "of class 'str'.")
+
+class TestKeyPairCredentials:
+    @staticmethod
+    def test_init_key_pair_credentials_incorrect_public_key_type():
+        with pytest.raises(IncorrectTypeError) as err_info:
+            KeyPairCredentials("user1", "1234", 1)
+        if six.PY2:
+            assert err_info.value.message == (
+                "KeyPairCredentials's parameter 'public_key' was type 'int' "
+                "but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "KeyPairCredentials's parameter 'public_key' was class 'int' "
+                "but should be of class 'str'.")
+
+    @staticmethod
+    def test_init_key_pair_credentials_incorrect_private_key_type():
+        with pytest.raises(IncorrectTypeError) as err_info:
+            KeyPairCredentials("user1", 1, "1234")
+        if six.PY2:
+            assert err_info.value.message == (
+                "KeyPairCredentials's parameter 'private_key' was type 'int' "
+                "but should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "KeyPairCredentials's parameter 'private_key' was class 'int' "
+                "but should be of class 'str'.")
+
+
+class TestPasswordCredentials:
+    @staticmethod
+    def test_init_password_credentials_incorrect_password_type():
+        with pytest.raises(IncorrectTypeError) as err_info:
+            PasswordCredentials("user1", 12345)
+        if six.PY2:
+            assert err_info.value.message == (
+                "PasswordCredentials's parameter 'password' was type 'int' but "
+                "should be of type 'basestring'.")
+        else:
+            assert err_info.value.message == (
+                "PasswordCredentials's parameter 'password' was class 'int' but "
+                "should be of class 'str'.")
+
